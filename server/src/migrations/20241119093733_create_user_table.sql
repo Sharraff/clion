@@ -1,12 +1,14 @@
 -- Add migration script here
-CREATE TABLE user (
-    id SERIAL PRIMARY KEY,    -- Auto-incrementing unique ID
-    name VARCHAR(100) NOT NULL,    -- User's full name
-    email VARCHAR(255) UNIQUE NOT NULL,  -- User's email (unique)
-    password TEXT NOT NULL,    -- Hashed password
-    created_at TIMESTAMP DEFAULT NOW(),  -- Timestamp of account creation
-    updated_at TIMESTAMP DEFAULT NOW()  -- Timestamp of last update
-    );
+
+CREATE TABLE IF NOT EXISTS "user" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password TEXT NOT NULL, -- Hashed password
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 
 -- Add an index on email for faster lookups
 CREATE INDEX idx_user_email ON user (email);

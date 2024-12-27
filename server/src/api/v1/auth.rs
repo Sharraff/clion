@@ -1,54 +1,23 @@
-use actix_web::{web, HttpResponse, Responder};
-use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use crate::services::login::{self, LogInput};
+use crate::services::register::{self, RegisterPayload};
+use actix_web::{post, web, Responder};
+use sqlx::{Pool, Postgres};
 
-
-use crate::utils::auth::{hash_password, verify_password, generate_jwt};
-use crate::models::users::User;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RegisterInput {
-    name: String,
-    email: String,
-    password: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct LogInput {
-    email: String,
-    password: String,
-}
-
-
-pub async fn register_user(
-    input: web::Json<RegisterInput>,
-    pool: web::Data<PgPool>,
-    secret: web::Data<String>,
+#[post("/signup")]
+pub async fn signup(
+    payload: web::Json<RegisterPayload>,
+    pool: web::Data<Pool<Postgres>>,
 ) -> impl Responder {
-    let hash_password = match hash_password(&input.password) {
-        Ok(hash) => hash,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to hash password"),
-    };
-
-    match User::creeate_user(&input.name, &input.email, &hash_password, &pool).await {
-        Ok(user) => HttpResponse::Ok().json(user),
-        Err(_) => HttpResponse::InternalServerError().body("Failed to register user"),
-    }
+    register::register_user(payload, pool).await
 }
 
-pub async fn login_user(
-    input: web::Json<LogInput>,
-    pool:web::Data<PgPool>,
-    secret: web::Data<String>,
-) -> impl Responder {
-    if let Ok(Some(user)) = User::find_by_email(&input.email, &pool).await {
-        if verify_password(&input.password, &user.password).unwrap_or(false) {
-            match generate_jwt(user.id, secret.get_ref()) {
-                Ok(token) => return HttpResponse::Ok().json(token),
-                Err(_) => return HttpResponse::InternalServerError().body("Failed to generate token"),
-            }
-        }
-    }
+//const  secret_in = web::Data::new("ibrahimmusharrafaudu").to_string();
 
-    HttpResponse::Unauthorized().body("Invalid credentials")
+#[post("/login")]
+pub async fn login_in(
+    payload: web::Json<LogInput>,
+    pool: web::Data<Pool<Postgres>>,
+    secret_in: web::Data<String>,
+) -> impl Responder {
+    login::login_user(payload, pool, secret_in).await
 }
